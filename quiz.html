@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quiz – AjiQuiz</title>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand"><span class="brand-icon">⬡</span><span class="brand-name">AjiQuiz</span></div>
+    <div class="nav-links">
+      <div class="quiz-timer" id="timer-display">--:--</div>
+    </div>
+  </nav>
+
+  <div class="quiz-layout" id="quiz-container">
+    <!-- Populated by JS -->
+  </div>
+
+  <!-- Confirm submit modal -->
+  <div class="modal-overlay" id="confirm-modal">
+    <div class="modal-box" style="max-width:400px;text-align:center">
+      <div style="font-size:3rem;margin-bottom:1rem">📋</div>
+      <h3 style="font-family:var(--font-display);font-size:1.2rem;margin-bottom:0.5rem">Submit Quiz?</h3>
+      <p class="text-muted" style="font-size:0.9rem;margin-bottom:1.5rem" id="confirm-msg"></p>
+      <div class="flex gap-2" style="justify-content:center">
+        <button class="btn btn-secondary" id="cancel-submit">Go Back</button>
+        <button class="btn btn-primary" id="confirm-submit">Submit →</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script>
+    const Q = AjiQuiz;
+    const student = Q.auth.getStudent();
+    if (!student) window.location.href = 'login.html';
+
+    const quizId = Q.store.get('active_quiz_id');
+    const quiz   = quizId ? Q.quizzes.getById(quizId) : null;
+
+    if (!quiz) { window.location.href = 'student-dashboard.html'; }
+    if (Q.results.hasAttempted(student.id, quizId)) { window.location.href = 'student-dashboard.html'; }
+
+    // ── State ────────────────────────────────────────────────────────
+    let currentQ   = 0;
+    let answers    = {}; // { questionIndex: optionKey }
+    let timeLeft   = quiz.duration * 60;
+    let timerInterval;
+    let submitted  = false;
+
+    // ── Timer ─────────────────────────────────────────────────────────
+    const timerEl = document.getElementById('timer-display');
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        timerEl.textContent = Q.formatTime(timeLeft);
+        if (timeLeft <= 60) timerEl.classList.add('warning');
+        if (timeLeft <= 0) { clearInterval(timerInterval); submitQuiz(true); }
+      }, 1000);
+      timerEl.textContent = Q.formatTime(timeLeft);
+    }
+
+    // ── Render question ───────────────────────────────────────────────
+    function render() {
+      const q = quiz.questions[currentQ];
+      const total = quiz.questions.length;
+      const answered = Object.keys(answers).length;
+      const pct = Math.round((currentQ / total) * 100);
+
+      document.getElementById('quiz-container').innerHTML = `
+        <div class="quiz-header">
+          <div class="quiz-meta">
+            <h2>${quiz.title}</h2>
+            <p>${quiz.subject || ''} · Question ${currentQ + 1} of ${total}</p>
+          </div>
+        </div>
+
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-label">
+            <span>Progress</span>
+            <span>${answered} of ${total} answered</span>
+          </div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" style="width:${pct}%"></div>
+          </div>
+        </div>
+
+        <div class="question-card">
+          <div class="question-number">Question ${currentQ + 1}</div>
+          <div class="question-text">${q.question}</div>
+          <div class="options-list">
+            ${q.options.map(opt => `
+              <div class="option-item ${answers[currentQ] === opt.key ? 'selected' : ''}"
+                   data-key="${opt.key}" onclick="selectOption('${opt.key}')">
+                <span class="option-key">${opt.key}</span>
+                <span class="option-text">${opt.text}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="quiz-nav">
+          <button class="btn btn-secondary" ${currentQ === 0 ? 'disabled' : ''} onclick="prevQ()">← Previous</button>
+          <div class="flex gap-1">
+            ${currentQ < total - 1
+              ? `<button class="btn btn-primary" onclick="nextQ()">Next →</button>`
+              : `<button class="btn btn-primary" onclick="confirmSubmit()">Submit Quiz ✓</button>`
+            }
+          </div>
+        </div>
+
+        <!-- Question Navigator -->
+        <div class="card mt-3">
+          <div class="card-header"><span class="card-title" style="font-size:0.85rem">Question Navigator</span></div>
+          <div style="display:flex;flex-wrap:wrap;gap:0.5rem;padding-top:0.25rem;">
+            ${quiz.questions.map((_, i) => `
+              <button onclick="goTo(${i})" style="
+                width:36px;height:36px;border-radius:6px;border:1.5px solid ${
+                  i === currentQ ? 'var(--volt)' :
+                  answers[i] ? 'var(--success)' : 'rgba(255,255,255,0.12)'
+                };
+                background:${i === currentQ ? 'rgba(170,255,0,0.1)' : answers[i] ? 'rgba(0,200,150,0.1)' : 'transparent'};
+                color:${i === currentQ ? 'var(--volt)' : answers[i] ? 'var(--success)' : 'var(--slate-400)'};
+                font-family:var(--font-display);font-size:0.8rem;font-weight:700;cursor:pointer;
+              ">${i + 1}</button>
+            `).join('')}
+          </div>
+          <p class="text-muted mt-2" style="font-size:0.75rem;">
+            <span style="color:var(--success)">■</span> Answered &nbsp;
+            <span style="color:var(--volt)">■</span> Current &nbsp;
+            <span style="color:rgba(255,255,255,0.2)">■</span> Unanswered
+          </p>
+        </div>
+      `;
+    }
+
+    function selectOption(key) {
+      answers[currentQ] = key;
+      render();
+    }
+
+    function nextQ() { if (currentQ < quiz.questions.length - 1) { currentQ++; render(); } }
+    function prevQ() { if (currentQ > 0) { currentQ--; render(); } }
+    function goTo(i) { currentQ = i; render(); }
+
+    // ── Submit ────────────────────────────────────────────────────────
+    function confirmSubmit() {
+      const total = quiz.questions.length;
+      const answered = Object.keys(answers).length;
+      const unanswered = total - answered;
+      document.getElementById('confirm-msg').textContent = unanswered > 0
+        ? `You have ${unanswered} unanswered question${unanswered > 1 ? 's' : ''}. Are you sure you want to submit?`
+        : `All ${total} questions answered. Ready to submit?`;
+      document.getElementById('confirm-modal').classList.add('open');
+    }
+
+    document.getElementById('cancel-submit').addEventListener('click', () => {
+      document.getElementById('confirm-modal').classList.remove('open');
+    });
+
+    document.getElementById('confirm-submit').addEventListener('click', () => {
+      document.getElementById('confirm-modal').classList.remove('open');
+      submitQuiz(false);
+    });
+
+    function submitQuiz(timedOut = false) {
+      if (submitted) return;
+      submitted = true;
+      clearInterval(timerInterval);
+
+      let score = 0;
+      quiz.questions.forEach((q, i) => {
+        if (answers[i] && answers[i] === q.answer) score++;
+      });
+
+      const total = quiz.questions.length;
+      const pct   = Math.round((score / total) * 100);
+
+      const result = {
+        id: Q.uid(),
+        studentId: student.id,
+        quizId: quiz.id,
+        score, total,
+        percentage: pct,
+        answers: { ...answers },
+        timedOut,
+        timestamp: Date.now(),
+      };
+
+      Q.results.save(result);
+      Q.store.set('last_result', result);
+      Q.store.del('active_quiz_id');
+
+      window.location.href = 'results.html';
+    }
+
+    // ── Start ─────────────────────────────────────────────────────────
+    render();
+    startTimer();
+  </script>
+</body>
+</html>

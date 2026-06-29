@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin – AjiQuiz</title>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <span class="brand-icon">⬡</span>
+      <span class="brand-name">AjiQuiz</span>
+      <p>Admin Panel</p>
+    </div>
+    <h2>Admin Login</h2>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="admin-username" placeholder="admin"/>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="admin-password" placeholder="••••••••"/>
+      <div class="form-error hidden" id="admin-error">Invalid credentials.</div>
+    </div>
+    <button class="btn btn-primary btn-block btn-lg" id="admin-login-btn">Sign In →</button>
+    <p class="text-muted mt-2" style="font-size:0.78rem;text-align:center;">Demo: <strong>admin</strong> / <strong>admin123</strong></p>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="admin-panel" class="admin-layout hidden">
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-icon">⬡</span> AjiQuiz
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="active" data-tab="dashboard">📊 Dashboard</a>
+      <a href="#" data-tab="quizzes">📝 Quizzes</a>
+      <a href="#" data-tab="students">👥 Students</a>
+      <a href="#" data-tab="results">🏆 Results</a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn btn-ghost" id="admin-logout-btn" style="width:100%">⬡ Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <h1 id="tab-title">Dashboard</h1>
+      <div id="tab-actions"></div>
+    </div>
+
+    <div class="admin-content">
+
+      <!-- Dashboard Tab -->
+      <div id="tab-dashboard" class="tab-pane">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:2rem;" id="stat-cards"></div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Recent Quiz Activity</span></div>
+          <div id="recent-results-list"></div>
+        </div>
+      </div>
+
+      <!-- Quizzes Tab -->
+      <div id="tab-quizzes" class="tab-pane hidden">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">All Quizzes</span>
+            <button class="btn btn-primary" id="new-quiz-btn">+ New Quiz</button>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Title</th><th>Questions</th><th>Duration</th><th>Status</th><th>Created</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="quizzes-table-body"></tbody>
+          </table>
+          <div id="quizzes-empty" class="empty-state hidden">
+            <div class="empty-icon">📝</div>
+            <p>No quizzes yet. Create your first one!</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Students Tab -->
+      <div id="tab-students" class="tab-pane hidden">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Students</span>
+            <button class="btn btn-primary" id="new-student-btn">+ Add Student</button>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr><th>Name</th><th>Username</th><th>Class</th><th>Quizzes Taken</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="students-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Results Tab -->
+      <div id="tab-results" class="tab-pane hidden">
+        <div class="card">
+          <div class="card-header"><span class="card-title">All Results</span></div>
+          <table class="data-table">
+            <thead>
+              <tr><th>Student</th><th>Quiz</th><th>Score</th><th>Grade</th><th>Date</th></tr>
+            </thead>
+            <tbody id="results-table-body"></tbody>
+          </table>
+          <div id="results-empty" class="empty-state hidden">
+            <div class="empty-icon">🏆</div><p>No results yet.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Modal: New/Edit Quiz -->
+<div class="modal-overlay" id="quiz-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="quiz-modal-title">New Quiz</h3>
+      <button class="modal-close" data-close="quiz-modal">×</button>
+    </div>
+    <div class="form-group">
+      <label>Quiz Title</label>
+      <input type="text" id="qm-title" placeholder="e.g. Basic Science – Term 2"/>
+    </div>
+    <div class="form-group">
+      <label>Subject / Class</label>
+      <input type="text" id="qm-subject" placeholder="e.g. JSS2 Basic Science"/>
+    </div>
+    <div class="form-group">
+      <label>Duration (minutes)</label>
+      <input type="number" id="qm-duration" value="30" min="1" max="180"/>
+    </div>
+    <div class="form-group">
+      <label>Upload Questions (.txt)</label>
+      <div class="upload-zone" id="upload-zone">
+        <div class="upload-icon">📄</div>
+        <p><strong>Click to choose</strong> or drag & drop a .txt file</p>
+        <p style="font-size:0.78rem;margin-top:0.4rem;">See format guide below</p>
+        <input type="file" id="qm-file" accept=".txt" style="display:none"/>
+      </div>
+      <div id="upload-preview" class="hidden" style="margin-top:0.75rem;"></div>
+    </div>
+    <details style="margin-bottom:1rem;">
+      <summary class="text-muted" style="cursor:pointer;font-size:0.82rem;">📖 Question Format Guide</summary>
+      <pre style="background:var(--indigo-900);border-radius:6px;padding:1rem;font-size:0.78rem;margin-top:0.5rem;overflow-x:auto;color:var(--volt);">Q: What is the capital of Nigeria?
+A. Kano
+B. Lagos
+C. Abuja
+D. Ibadan
+ANS: C
+
+Q: Which gas do plants absorb?
+A. Oxygen
+B. Nitrogen
+C. Carbon Dioxide
+D. Hydrogen
+ANS: C</pre>
+    </details>
+    <div class="form-group">
+      <label>Status</label>
+      <select id="qm-status">
+        <option value="draft">Draft (not visible to students)</option>
+        <option value="published">Published (students can take it)</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close="quiz-modal">Cancel</button>
+      <button class="btn btn-primary" id="save-quiz-btn">Save Quiz</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: New Student -->
+<div class="modal-overlay" id="student-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="student-modal-title">Add Student</h3>
+      <button class="modal-close" data-close="student-modal">×</button>
+    </div>
+    <div class="form-group">
+      <label>Full Name</label>
+      <input type="text" id="sm-name" placeholder="e.g. Amaka Okafor"/>
+    </div>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="sm-username" placeholder="e.g. amaka2026"/>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="sm-password" placeholder="Set a password"/>
+    </div>
+    <div class="form-group">
+      <label>Class</label>
+      <input type="text" id="sm-class" placeholder="e.g. JSS3A"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close="student-modal">Cancel</button>
+      <button class="btn btn-primary" id="save-student-btn">Save Student</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: View Quiz Questions -->
+<div class="modal-overlay" id="view-quiz-modal">
+  <div class="modal-box" style="max-width:640px">
+    <div class="modal-header">
+      <h3 id="vqm-title">Quiz Questions</h3>
+      <button class="modal-close" data-close="view-quiz-modal">×</button>
+    </div>
+    <div id="vqm-content"></div>
+  </div>
+</div>
+
+<script src="../js/app.js"></script>
+<script src="../js/admin.js"></script>
+</body>
+</html>

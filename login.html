@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student Login – AjiQuiz</title>
+  <link rel="stylesheet" href="../css/main.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body class="auth-page">
+
+  <div class="auth-card">
+    <div class="auth-logo">
+      <span class="brand-icon">⬡</span>
+      <span class="brand-name">AjiQuiz</span>
+      <p>Student Portal</p>
+    </div>
+
+    <h2>Sign In</h2>
+
+    <div class="form-group">
+      <label for="username">Username</label>
+      <input type="text" id="username" placeholder="Enter your username" autocomplete="username"/>
+    </div>
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password"/>
+      <div class="form-error hidden" id="login-error">Invalid username or password.</div>
+    </div>
+
+    <button class="btn btn-primary btn-block btn-lg" id="login-btn">Sign In →</button>
+
+    <hr class="divider"/>
+    <p class="text-muted" style="font-size:0.82rem;text-align:center;">
+      Are you an admin? <a href="admin.html" class="text-volt">Go to Admin Panel</a>
+    </p>
+    <p class="text-muted mt-2" style="font-size:0.78rem;text-align:center;">
+      Demo: <strong>student1</strong> / <strong>pass123</strong>
+    </p>
+  </div>
+
+  <script src="../js/app.js"></script>
+  <script>
+    // Redirect if already logged in
+    if (AjiQuiz.auth.getStudent()) window.location.href = 'student-dashboard.html';
+
+    document.getElementById('login-btn').addEventListener('click', function () {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const err = document.getElementById('login-error');
+      err.classList.add('hidden');
+
+      const student = AjiQuiz.auth.loginStudent(username, password);
+      if (student) {
+        window.location.href = 'student-dashboard.html';
+      } else {
+        err.classList.remove('hidden');
+      }
+    });
+
+    // Enter key support
+    ['username', 'password'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('login-btn').click();
+      });
+    });
+  </script>
+</body>
+</html>
